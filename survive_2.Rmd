@@ -1,0 +1,61 @@
+---
+title: "Survival_2"
+author: "Kelvin Nyongesa"
+date: "2023-06-05"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Load Library
+```{r}
+library(survival)
+```
+
+Load the Data
+```{r}
+kidney_data<-kidney
+head(kidney_data)
+```
+
+KM Estimator
+```{r}
+# Create the survival object for observed event times only
+surv_object <- with(kidney_data, Surv(time[status == 1]))
+
+# Fit the Kaplan-Meier estimator using only observed event times
+km_fit <- survfit(surv_object ~ 1)
+# Print summary table 
+summary(km_fit)
+```
+
+Plot 
+```{r}
+# Get the number of intervals
+num_intervals <- length(km_fit$time)
+
+# Generate a vector of unique colors for each interval
+col_palette <- rainbow(num_intervals)
+
+# Create an empty plot
+plot(km_fit, xlab = "Time", ylab = "Survival Probability")
+
+# Plot each interval separately with corresponding color
+for (i in 1:num_intervals) {
+  # Get the break point of the current interval
+  break_point <- km_fit$time[i]
+  
+  # Plot the survival probability curve with a different color at the start and end points
+  lines(km_fit, col = col_palette[i], subset = i)
+  points(x = break_point, y = km_fit$surv[i], col = col_palette[i], pch = 19)
+}
+
+# Add a legend
+legend("topright", legend = paste("Interval", 1:num_intervals), col = col_palette, lwd = 1)
+```
+
