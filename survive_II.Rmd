@@ -1,0 +1,117 @@
+---
+title: "Survival _II"
+author: "Kelvin Nyongesa"
+date: "2023-06-08"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r}
+# Load the survival package
+library(survival)
+
+# Filter the dataset to include only observed events
+kidney_observed <- kidney[kidney$status == 1, ]
+
+# Create a survival object with the observed times
+surv_obj <- Surv(kidney_observed$time)
+
+# Fit the Kaplan-Meier estimator
+km_fit <- survfit(surv_obj ~ 1)
+
+# Access the estimated survival probabilities at each observed time point
+km_survival <- km_fit$surv
+
+# Print the estimated survival probabilities
+library(knitr)
+km_table<-summary(km_fit)
+km_table
+```
+
+#############
+
+```{r}
+# Assuming you have a survfit object named 'survfit_obj'
+summary_obj <- km_table
+
+# Extract relevant information from the summary object
+summary_data <- summary_obj$surv
+lower_ci <- summary_obj$lower
+upper_ci <- summary_obj$upper
+
+# Create a data frame from the extracted information
+summary_df <- data.frame(Survival = summary_data, Lower_CI = lower_ci, Upper_CI = upper_ci)
+
+# Display the table using kable
+kable(summary_df, format = "markdown", digits = 2, caption = "Survival Summary")
+
+
+```
+
+###########
+
+```{r}
+# Access the confidence interval values from the data set
+ci_lower <- km_fit$lower 
+ci_upper <- km_fit$upper
+
+# Plot the survival function with 95% point wise confidence intervals
+plot(km_fit, xlab = "Time", ylab = "Survival Function", main = "Kaplan-Meir Estimate of the Survival Function")
+lines(km_fit, col = "blue")
+lines(km_fit$time, ci_upper, type = "s", col = "red", lty = 2)
+lines(km_fit$time, ci_lower, type = "s", col = "green", lty = 2)
+
+# Add legend
+legend("topright", legend = c("Survival Function", "upper","lower"),
+       col = c("blue", "red","green"), lty = c(1, 2,2), bty = "n")
+mtext("Figure 1: KM-Estimate", side = 1, line = 3, at = 0.5, cex = 1.2)
+```
+
+Estimating the Cummulative Hazard using the Nelson Aalen Estimator
+
+#Create a survival object using the Surv() function, considering only the observed event times
+```{r}
+kidney_data<-kidney
+surv_obj <- Surv(time = kidney_data$time[kidney_data$status == 1], event=kidney_data$status[kidney_data$status == 1])
+```
+
+#Apply the Nelson-Aalen estimator to estimate the cumulative hazard
+```{r}
+na_fit <- survfit(surv_obj ~ 1, data = kidney_data, type = "fh")
+```
+
+#Extract the cumulative hazard estimates and the confidence intervals
+```{r}
+na_cumhaz <- -log(na_fit$surv)
+na_lower <- -log(na_fit$lower)
+na_upper <- -log(na_fit$upper)
+time <- na_fit$time
+```
+
+#Create a data frame with the cumulative hazard estimates and the confidence intervals
+```{r}
+library(knitr)
+df_nelson <- data.frame(time, na_cumhaz, na_lower, na_upper)
+na_table<-kable(df_nelson)
+na_table
+```
+
+Plot of the Cumulative Hazard function
+```{r}
+# Plot the hazard function with 95% confidence intervals
+plot(df_nelson$time, df_nelson$na_cumhaz, type = "s", col = "red",
+     xlab = "Time", ylab = "Hazard", main = "Nelson-Aalen Estimate of the Cumulative Hazard")
+
+# Add the upper and lower confidence intervals
+lines(df_nelson$time, df_nelson$na_lower, type = "s", col = "purple", lty = 2)
+lines(df_nelson$time, df_nelson$na_upper, type = "s", col = "green", lty = 2)
+# Add a legend
+legend("topleft", legend = c("Hazard Function", "Upper","Lower"),
+       col = c("red","purple","green"), lty = c(1, 2,2), bty = "n")
+# Add figure label
+mtext("Figure 2: NA Estimator", side = 1, line = 3, at = 0.5, cex = 1.2)
+```
+
+
